@@ -312,7 +312,10 @@ class PasswordResetter
      */
     protected function generateSecureHash($hashIdentifier, $data)
     {
-        // mitigate rainbow table attack
+        // mitigate rainbow table attack - rainbow tables (in theory) work on any hash function, so leaving the following
+        // as it works
+        // could add salt and hashIdentifier at end without security loss as putting
+        // it in the middle does not increase security but adds complexity
         $halfDataLen = strlen($data) / 2;
 
         $stringToHash = $hashIdentifier
@@ -347,7 +350,14 @@ class PasswordResetter
      */
     protected function hashData($data)
     {
-        return Common::hash($data);
+        // assume Password::hash uses a secure hashing algorithm
+        // added Common::hash to obfuscate the fact and make the token
+        // a more standard length
+        // not strictly necessary as FOSS but adds another layer
+        // of complexity when cracking secure tokens
+        // because hash type cannot be as easily identified
+        // and another hashing step would be required on top
+        return Common::hash($this->passwordHelper->hash($data));
     }
 
     /**

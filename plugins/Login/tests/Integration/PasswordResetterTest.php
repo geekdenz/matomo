@@ -166,6 +166,23 @@ class PasswordResetterTest extends IntegrationTestCase
         $this->passwordResetter->checkValidConfirmPasswordToken('superUserLogin', $oldCapturedToken);
     }
 
+    public function test_passwordReset_generatePasswordResetToken()
+    {
+        $user = [
+            'login' => 'somelogin',
+            'email' => 'some@email.com',
+            'ts_password_modified' => 'tspasswordmodified',
+            'password' => 'password',
+        ];
+        $keySuffix = 'someSuffix';
+        $token = $this->passwordResetter->generatePasswordResetToken($user, $keySuffix);
+        $this->assertEquals(
+            strlen($token),
+            // make obvious what a token might look like
+            strlen('3d3748a83466f94ec25ae174a48993a054c46febaff2e7ee7aae05dc11e8ee0ebacb9b2a6d5729bc65e8b19d12d21921202e9e0e4ac81e90bf329304b8f31863')
+        );
+    }
+
     /**
      * @param Fixture $fixture
      */
@@ -205,4 +222,5 @@ class PasswordResetterTest extends IntegrationTestCase
             ]),
         ];
     }
+
 }

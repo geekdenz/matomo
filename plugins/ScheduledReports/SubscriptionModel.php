@@ -10,6 +10,7 @@ namespace Piwik\Plugins\ScheduledReports;
 
 use Piwik\Access;
 use Piwik\API\Request;
+use Piwik\Auth\Password;
 use Piwik\Common;
 use Piwik\Db;
 use Piwik\DbHelper;
@@ -21,9 +22,16 @@ class SubscriptionModel
     private static $rawPrefix = 'report_subscriptions';
     private $table;
 
-    public function __construct()
+    protected $passwordHelper;
+
+    public function __construct($passwordHelper = null)
     {
         $this->table = Common::prefixTable(self::$rawPrefix);
+        if (empty($passwordHelper)) {
+            $this->passwordHelper = new Password();
+        } else {
+            $this->passwordHelper = $passwordHelper;
+        }
     }
 
     public function unsubscribe($token)
@@ -155,7 +163,7 @@ class SubscriptionModel
 
     private function generateToken($email)
     {
-        return substr(Common::hash($email . time() . Common::getRandomString(5)), 0, 100);
+        return substr($this->passwordHelper->hash($email . time() . Common::getRandomString(5)), 0, 100);
     }
 
     private function tokenExists($token)
