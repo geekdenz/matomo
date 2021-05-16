@@ -325,6 +325,13 @@ if (typeof window.Matomo !== 'object') {
                     for (j = 0; j < asyncTrackers.length; j++) {
                         if (isString(f)) {
                             context = asyncTrackers[j];
+                            if (context && context.shouldNotTrack) {
+                                // when file:// is used for example
+                                // might be better to do:
+                                // continue; // because other trackers might be desirable to run
+                                // but assume we should cancel out asap
+                                return;
+                            }
 
                             var isPluginTrackerCall = f.indexOf('.') > 0;
 
@@ -2158,7 +2165,13 @@ if (typeof window.Matomo !== 'object') {
                 CONSENT_REMOVED_COOKIE_NAME = 'mtm_consent_removed',
 
                 // Current URL and Referrer URL
-                locationArray = urlFixup(documentAlias.domain, windowAlias.location.href, getReferrer()),
+                locationArray = urlFixup(documentAlias.domain, windowAlias.location.href, getReferrer()), fileUriStart = 'file://';
+
+            if (locationArray[1].substring(0, fileUriStart.length) === fileUriStart) {
+                this.shouldNotTrack = true;
+                return; // do not want to track local file saves
+            }
+            var
                 domainAlias = domainFixup(locationArray[0]),
                 locationHrefAlias = safeDecodeWrapper(locationArray[1]),
                 configReferrerUrl = safeDecodeWrapper(locationArray[2]),
@@ -5042,6 +5055,9 @@ if (typeof window.Matomo !== 'object') {
                 }
 
                 var tracker = new Tracker(matomoUrl, siteId);
+                if (tracker.shouldNotTrack) {
+                    return false;
+                } // catch early
 
                 asyncTrackers.push(tracker);
 
