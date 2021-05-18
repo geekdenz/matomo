@@ -8,6 +8,7 @@
  */
 namespace Piwik\Plugins\CurrentLocalTime\Widgets;
 
+use Piwik\Site;
 use Piwik\Widget\Widget;
 use Piwik\Widget\WidgetConfig;
 use Piwik\View;
@@ -71,9 +72,11 @@ class GetTimeWidget extends Widget
      */
     public function render()
     {
-        // or: return $this->renderTemplate('myViewTemplate', array(...view variables...));
-
-        return '<div class="CurrentTime">TIME?</div>';
+        $site = Site::getSite($_REQUEST['idSite']);
+        $timeZone = Site::getTimezoneFor($site['idsite']);
+        return '<div class="CurrentTime" data-timezone="' .
+            $timeZone .
+            '">Loading space-time... :)</div>';
     }
 
 }
