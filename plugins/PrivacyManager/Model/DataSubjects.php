@@ -15,6 +15,7 @@ use Piwik\Container\StaticContainer;
 use Piwik\Date;
 use Piwik\Db;
 use Piwik\DbHelper;
+use Piwik\LogDeleter;
 use Piwik\Metrics\Formatter;
 use Piwik\Piwik;
 use Piwik\Plugin\LogTablesProvider;
@@ -109,10 +110,7 @@ class DataSubjects
 
         $datesToInvalidateByIdSite = $this->getDatesToInvalidate($visits);
 
-        $logTables = $this->getLogTablesToDeleteFrom();
-        $deleteCounts = $this->deleteLogDataFrom($logTables, function ($tableToSelectFrom) use ($visits) {
-            return $this->visitsToWhereAndBind($tableToSelectFrom, $visits);
-        });
+        $deleteCounts = StaticContainer::get(LogDeleter::class)->getDeleteCountsAndDeleteFromLogTables($visits);
 
         $this->invalidateArchives($datesToInvalidateByIdSite);
 
@@ -460,9 +458,14 @@ class DataSubjects
         $where = array();
         $bind = array();
         foreach ($visits as $visit) {
-            $where[] = '(' . $tableToSelect . '.idsite = ? AND ' . $tableToSelect . '.idvisit = ?)';
-            $bind[] = $visit['idsite'];
-            $bind[] = $visit['idvisit'];
+            if ($visit['idsite'] == null) {
+                $where[] = '(' . $tableToSelect . '.idvisit = ?)';
+                $bind[] = $visit['idvisit'];
+            } else {
+                $where[] = '(' . $tableToSelect . '.idsite = ? AND ' . $tableToSelect . '.idvisit = ?)';
+                $bind[] = $visit['idsite'];
+                $bind[] = $visit['idvisit'];
+            }
         }
         $where = implode(' OR ', $where);
 

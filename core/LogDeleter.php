@@ -8,8 +8,10 @@
 
 namespace Piwik;
 
+use Piwik\Container\StaticContainer;
 use Piwik\DataAccess\RawLogDao;
 use Piwik\Plugin\LogTablesProvider;
+use Piwik\Plugins\PrivacyManager\Model\DataSubjects;
 use Piwik\Plugins\SitesManager\Model;
 
 /**
@@ -40,21 +42,18 @@ class LogDeleter
      *
      * @param int[] $visitIds
      * @return int The number of deleted visits.
+     * @throws \Zend_Db_Statement_Exception
      */
-    public function deleteVisits($visitIds)
+    public function deleteVisits(array $visitIds): int
     {
-        $numDeletedVisits = 0;
+        $visits = array_map(function($id) {
+            return ['idsite' => null, 'idvisit' => $id];
+        },$visitIds);
 
-        foreach ($this->logTablesProvider->getAllLogTables() as $logTable) {
-            if ($logTable->getColumnToJoinOnIdVisit()) {
-                $numVisits = $this->rawLogDao->deleteFromLogTable($logTable->getName(), $visitIds);
-                if ($logTable->getName() === 'log_visit') {
-                    $numDeletedVisits = $numVisits;
-                }
-            }
-        }
-
-        return $numDeletedVisits;
+        $deletedCounts = $this->getDeleteCountsAndDeleteFromLogTables($visits);
+        return array_reduce(array_values($deletedCounts), function($acc, $count) {
+            return $acc + $count;
+        }, 0);
     }
 
     /**
@@ -106,5 +105,19 @@ class LogDeleter
         }, $willDelete = true);
 
         return $logsDeleted;
+    }
+
+    /**
+     * @param $visits
+     * @return array
+     * @throws \Zend_Db_Statement_Exception
+     */
+    public function getDeleteCountsAndDeleteFromLogTables($visits): array
+    {
+        $logTables = $this->getLogTablesToDeleteFrom();
+        $deleteCounts = $this->deleteLogDataFrom($logTables, function ($tableToSelectFrom) use ($visits) {
+            return $this->visitsToWhereAndBind($tableToSelectFrom, $visits);
+        });
+        return $deleteCounts;
     }
 }
